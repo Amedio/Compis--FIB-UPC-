@@ -55,6 +55,10 @@ void zzcr_attr(Attrib *attr,int type,char *text)
     attr->kind="intconst";
     attr->text=text;
     break;
+  case STRING:
+    attr->kind="string";
+    attr->text=text;
+    break;
   default:
     attr->kind=lowercase(text);
     attr->text="";
@@ -204,15 +208,31 @@ int main(int argc,char *argv[])
 #lexclass START
 #token PROGRAM      "PROGRAM"
 #token ENDPROGRAM   "ENDPROGRAM"
+
 #token VARS         "VARS"
 #token ENDVARS      "ENDVARS"
+
+#token PROCEDURE    "PROCEDURE"
+#token ENDPROCEDURE "ENDPROCEDURE"
+
+#token FUNCTION     "FUNCTION"
+#token ENDFUNCTION  "ENDFUNCTION"
+#token RETURN       "RETURN"
+
 #token INT          "INT"
 #token BOOL         "BOOL"
+#token STRING       "\"~[\"]*\""
 #token ARRAY        "ARRAY"
 #token OF           "OF"
 #token STRUCT       "STRUCT"
 #token ENDSTRUCT    "ENDSTRUCT"
+#token VAL          "VAL"
+#token REF          "REF"
+
 #token WRITELN      "WRITELN"
+#token WRITE        "WRITE"
+#token READ         "READ"
+
 #token PLUS         "\+"
 #token MINUS        "\-"
 #token MULT         "\*"
@@ -223,21 +243,29 @@ int main(int argc,char *argv[])
 #token AND          "AND"
 #token OR           "OR"
 #token NOT          "NOT"
+
 #token OPENPAR      "\("
 #token CLOSEPAR     "\)"
 #token OPENSQBRA    "\["
 #token CLOSESQBRA   "\]"
+
 #token ASIG         ":="
+
 #token WHILE        "WHILE"
 #token DO           "DO"
 #token ENDWHILE     "ENDWHILE"
+
 #token IF           "IF"
 #token THEN         "THEN"
 #token ELSE         "ELSE"
 #token ENDIF        "ENDIF"
+
 #token DOT          "."
+#token COMMA        ","
+
 #token T            "true"
 #token F            "false"
+
 #token IDENT        "[a-zA-Z][a-zA-Z0-9]*"
 #token INTCONST     "[0-9]+"
 #token COMMENT      "//~[\n]*" << printf("%s",zzlextext); zzskip(); >>
@@ -258,20 +286,28 @@ dec_var: IDENT^ constr_type;
 
 l_dec_blocs: ( dec_bloc )* <<#0=createASTlist(_sibling);>> ;
 
-dec_bloc: (PROCEDURE^ ENDPROCEDURE |
-           FUNCTION^ ENDFUNCTION)<</*needs modification*/ >>;
+dec_bloc: (PROCEDURE^ defprocedure dec_vars l_dec_blocs l_instrs ENDPROCEDURE! |
+           FUNCTION^ deffunction dec_vars l_dec_blocs l_instrs RETURN! expression ENDFUNCTION!);
 
-constr_type: INT | STRUCT^ (field)* ENDSTRUCT! | BOOL | ARRAY^ parbraexp OF! constr_type ;
+defprocedure: IDENT^ l_param;
+deffunction: IDENT^ l_param RETURN! constr_type;
+
+l_param: OPENPAR! (param (COMMA! param)* | ) CLOSEPAR! <<#0=createASTlist(_sibling);>>;
+
+param: (VAL^ | REF^) IDENT constr_type;
+
+constr_type: (INT | STRUCT^ (field)* ENDSTRUCT! | BOOL | ARRAY^ parbraexp OF! constr_type) ;
 
 field: IDENT^ constr_type;
 
 l_instrs: (instruction)* <<#0=createASTlist(_sibling);>>;
 
 instruction:
-        IDENT (DOT^ IDENT)* (OPENSQBRA^ expression CLOSESQBRA!)* (DOT^ expression)* ASIG^ expression
-      |	WRITELN^ OPENPAR! ( expression | STRING ) CLOSEPAR!
+        IDENT (DOT^ IDENT | OPENSQBRA^ expression CLOSESQBRA!)* (ASIG^ expression | OPENPAR^ callparams)
+      | ( WRITELN^ | WRITE^ ) OPENPAR! ( expression | STRING ) CLOSEPAR!
+      | READ^ OPENPAR! ( expression ) CLOSEPAR!
       | WHILE^ expression DO! l_instrs ENDWHILE!
-      | (IF^ expression THEN! l_instrs ( | ELSE! l_instrs) ENDIF!);
+      | IF^ expression THEN! l_instrs ( | ELSE! l_instrs) ENDIF!;
 
 expression: boolexp;
 
@@ -288,8 +324,10 @@ negexp: (parbraexp | NOT^ negexp | MINUS^ negexp);
 parbraexp: OPENPAR! expression CLOSEPAR! | OPENSQBRA! expression CLOSESQBRA! | expsimple;
 
 expsimple:
-        IDENT^ (DOT^ IDENT)* (OPENSQBRA^ expression CLOSESQBRA!)* (DOT^ expression)*
+        IDENT^ (DOT^ IDENT | OPENSQBRA^ expression CLOSESQBRA! | OPENPAR^ callparams)*
       | INTCONST
       | T
       | F
       ;
+
+callparams: (expression (COMMA! expression)* | ) CLOSEPAR! <<#0=createASTlist(_sibling);>>;
