@@ -1,0 +1,106 @@
+
+
+  1: Program
+  2:   Vars
+  3:     I Int
+  4:   EndVars
+  5:   I:=4
+  6:   I:=5
+  7:   WriteLn(I)
+  8:   I:=I-2
+  9:   WriteLn(I)
+ 10:   I:=3/I
+ 11:   WriteLn(I)
+ 12:   WriteLn(I-(--1))
+ 13: EndProgram
+ 14: 
+
+
+program
+    \__list
+    |      \__ident(I)
+    |               \__int
+    \__list
+    \__list
+           \__:=
+           |    \__ident(I)
+           |    \__intconst(4)
+           \__:=
+           |    \__ident(I)
+           |    \__intconst(5)
+           \__writeln
+           |         \__ident(I)
+           \__:=
+           |    \__ident(I)
+           |    \__-
+           |        \__ident(I)
+           |        \__intconst(2)
+           \__writeln
+           |         \__ident(I)
+           \__:=
+           |    \__ident(I)
+           |    \__/
+           |        \__intconst(3)
+           |        \__ident(I)
+           \__writeln
+           |         \__ident(I)
+           \__writeln
+                     \__-
+                         \__ident(I)
+                         \__-
+                             \__-
+                                 \__intconst(1)
+
+
+Type Checking:
+
+Generating code:
+program
+  parameters
+    static_link
+  endparameters
+
+  variables
+    _I 4
+  endvariables
+
+    aload _I t0
+    iload 4 t1
+    stor t1 t0
+    aload _I t0
+    iload 5 t1
+    stor t1 t0
+    load _I t0
+    wrii t0
+    wrln
+    aload _I t0
+    load _I t1
+    iload 2 t2
+    subi t1 t2 t1
+    stor t1 t0
+    load _I t0
+    wrii t0
+    wrln
+    aload _I t0
+    iload 3 t1
+    load _I t2
+    divi t1 t2 t1
+    stor t1 t0
+    load _I t0
+    wrii t0
+    wrln
+    load _I t0
+    iload 1 t1
+    mini t1 t1
+    mini t1 t1
+    subi t0 t1 t0
+    wrii t0
+    wrln
+    stop
+endprogram
+
+Executing code:
+5
+3
+1
+0

@@ -1,0 +1,94 @@
+
+
+  1: PROGRAM
+  2:   VARS
+  3:     x Int
+  4:     y Int
+  5:     a Bool
+  6:     b Bool
+  7:   ENDVARS
+  8:   b := True
+  9:   x := False
+ 10:   b := 3
+ 11:   b := b And True Or False
+ 12:   b := Not Not - 3
+ 13:   a := 3 < 4 + 5
+ 14:   a := 7 > True
+ 15:   b := 3 = 3
+ 16:   b := True = False
+ 17:   b := 3 = False
+ 18: ENDPROGRAM
+ 19: 
+
+
+program
+    \__list
+    |      \__ident(x)
+    |      |        \__int
+    |      \__ident(y)
+    |      |        \__int
+    |      \__ident(a)
+    |      |        \__bool
+    |      \__ident(b)
+    |               \__bool
+    \__list
+    \__list
+           \__:=
+           |    \__ident(b)
+           |    \__true
+           \__:=
+           |    \__ident(x)
+           |    \__false
+           \__:=
+           |    \__ident(b)
+           |    \__intconst(3)
+           \__:=
+           |    \__ident(b)
+           |    \__or
+           |         \__and
+           |         |     \__ident(b)
+           |         |     \__true
+           |         \__false
+           \__:=
+           |    \__ident(b)
+           |    \__not
+           |          \__not
+           |                \__-
+           |                    \__intconst(3)
+           \__:=
+           |    \__ident(a)
+           |    \__<
+           |        \__intconst(3)
+           |        \__+
+           |            \__intconst(4)
+           |            \__intconst(5)
+           \__:=
+           |    \__ident(a)
+           |    \__>
+           |        \__intconst(7)
+           |        \__true
+           \__:=
+           |    \__ident(b)
+           |    \__=
+           |        \__intconst(3)
+           |        \__intconst(3)
+           \__:=
+           |    \__ident(b)
+           |    \__=
+           |        \__true
+           |        \__false
+           \__:=
+                \__ident(b)
+                \__=
+                    \__intconst(3)
+                    \__false
+
+
+Type Checking:
+
+L. 9: Assignment with incompatible types.
+L. 10: Assignment with incompatible types.
+L. 12: Operator not with incompatible types.
+L. 14: Operator > with incompatible types.
+L. 17: Operator = with incompatible types.
+There are errors: no code generated

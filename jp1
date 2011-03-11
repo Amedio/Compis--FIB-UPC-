@@ -1,0 +1,18 @@
+PROGRAM
+  VARS
+    x Int
+    y Int
+    b Struct
+        a Int
+      EndStruct
+  ENDVARS
+  x := x + y / 2
+  x := (x + y) / 2
+  y := x * y / b.a
+
+  y := z * b / b
+  y := (z * b) / b
+  y := z * (b / b)
+
+  y := x - 3 - 4 - p
+ENDPROGRAM

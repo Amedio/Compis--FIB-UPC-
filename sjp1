@@ -1,0 +1,102 @@
+
+
+  1: PROGRAM
+  2:   VARS
+  3:     x Int
+  4:     y Int
+  5:     b Struct
+  6:         a Int
+  7:       EndStruct
+  8:   ENDVARS
+  9:   x := x + y / 2
+ 10:   x := (x + y) / 2
+ 11:   y := x * y / b.a
+ 12: 
+ 13:   y := z * b / b
+ 14:   y := (z * b) / b
+ 15:   y := z * (b / b)
+ 16: 
+ 17:   y := x - 3 - 4 - p
+ 18: ENDPROGRAM
+ 19: 
+
+
+program
+    \__list
+    |      \__ident(x)
+    |      |        \__int
+    |      \__ident(y)
+    |      |        \__int
+    |      \__ident(b)
+    |               \__struct
+    |                        \__ident(a)
+    |                                 \__int
+    \__list
+    \__list
+           \__:=
+           |    \__ident(x)
+           |    \__+
+           |        \__ident(x)
+           |        \__/
+           |            \__ident(y)
+           |            \__intconst(2)
+           \__:=
+           |    \__ident(x)
+           |    \__/
+           |        \__+
+           |        |   \__ident(x)
+           |        |   \__ident(y)
+           |        \__intconst(2)
+           \__:=
+           |    \__ident(y)
+           |    \__/
+           |        \__*
+           |        |   \__ident(x)
+           |        |   \__ident(y)
+           |        \__.
+           |            \__ident(b)
+           |            \__ident(a)
+           \__:=
+           |    \__ident(y)
+           |    \__/
+           |        \__*
+           |        |   \__ident(z)
+           |        |   \__ident(b)
+           |        \__ident(b)
+           \__:=
+           |    \__ident(y)
+           |    \__/
+           |        \__*
+           |        |   \__ident(z)
+           |        |   \__ident(b)
+           |        \__ident(b)
+           \__:=
+           |    \__ident(y)
+           |    \__*
+           |        \__ident(z)
+           |        \__/
+           |            \__ident(b)
+           |            \__ident(b)
+           \__:=
+                \__ident(y)
+                \__-
+                    \__-
+                    |   \__-
+                    |   |   \__ident(x)
+                    |   |   \__intconst(3)
+                    |   \__intconst(4)
+                    \__ident(p)
+
+
+Type Checking:
+
+L. 13: Identifier z is undeclared.
+L. 13: Operator * with incompatible types.
+L. 13: Operator / with incompatible types.
+L. 14: Identifier z is undeclared.
+L. 14: Operator * with incompatible types.
+L. 14: Operator / with incompatible types.
+L. 15: Identifier z is undeclared.
+L. 15: Operator / with incompatible types.
+L. 17: Identifier p is undeclared.
+There are errors: no code generated

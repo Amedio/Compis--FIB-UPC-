@@ -1,0 +1,16 @@
+Program
+  Vars
+    a Struct
+        b Int
+      EndStruct
+  EndVars
+
+  WriteLn("EstoEsUnaString")
+  Write("Puede contener espacios ")
+  Write("y otros caracteres como")
+  WriteLn(":")
+
+  Write(a.b)
+  Write(a)
+  Write(b)
+EndProgram

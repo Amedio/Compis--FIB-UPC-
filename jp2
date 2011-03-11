@@ -1,0 +1,18 @@
+PROGRAM
+  VARS
+    x Int
+    y Int
+    a Bool
+    b Bool
+  ENDVARS
+  b := True
+  x := False
+  b := 3
+  b := b And True Or False
+  b := Not Not - 3
+  a := 3 < 4 + 5
+  a := 7 > True
+  b := 3 = 3
+  b := True = False
+  b := 3 = False
+ENDPROGRAM

@@ -1,0 +1,52 @@
+
+
+  1: Program
+  2:   Vars
+  3:     a Struct
+  4:         b Int
+  5:       EndStruct
+  6:   EndVars
+  7: 
+  8:   WriteLn("EstoEsUnaString")
+  9:   Write("Puede contener espacios ")
+ 10:   Write("y otros caracteres como")
+ 11:   WriteLn(":")
+ 12: 
+ 13:   Write(a.b)
+ 14:   Write(a)
+ 15:   Write(b)
+ 16: EndProgram
+ 17: 
+
+
+program
+    \__list
+    |      \__ident(a)
+    |               \__struct
+    |                        \__ident(b)
+    |                                 \__int
+    \__list
+    \__list
+           \__writeln
+           |         \__string("EstoEsUnaString")
+           \__write
+           |       \__string("Puede contener espacios ")
+           \__write
+           |       \__string("y otros caracteres como")
+           \__writeln
+           |         \__string(":")
+           \__write
+           |       \__.
+           |           \__ident(a)
+           |           \__ident(b)
+           \__write
+           |       \__ident(a)
+           \__write
+                   \__ident(b)
+
+
+Type Checking:
+
+L. 14: Basic type required in write.
+L. 15: Identifier b is undeclared.
+There are errors: no code generated

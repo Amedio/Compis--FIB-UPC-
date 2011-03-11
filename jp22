@@ -1,0 +1,13 @@
+Program
+  Vars
+    I Int
+  EndVars
+  I:=4
+  I:=5
+  WriteLn(I)
+  I:=I-2
+  WriteLn(I)
+  I:=3/I
+  WriteLn(I)
+  WriteLn(I-(--1))
+EndProgram
