@@ -16,6 +16,7 @@ using namespace std;
 #include "myASTnode.hh"
 
 #include "semantic.hh"
+#include "util.hh"
 
 // feedback the main program with our error status
 int TypeError = 0;
@@ -228,6 +229,9 @@ void TypeCheck(AST *a,string info)
   else if (a->kind=="intconst") {
     a->tp=create_type("int",0,0);
   } 
+  else if (a->kind=="true" || a->kind=="false") {
+    a->tp=create_type("bool",0,0);
+  } 
   else if (a->kind=="+" || (a->kind=="-" && child(a,1)!=0) || a->kind=="*"
 	   || a->kind=="/") {
     TypeCheck(child(a,0));
@@ -262,7 +266,82 @@ void TypeCheck(AST *a,string info)
 	a->tp=child(a,0)->tp->struct_field[child(a,1)->text];
       }
     }
-  } 
+  }
+  else if (a->kind=="and" | a->kind=="or") {
+    TypeCheck(child(a,0));
+    TypeCheck(child(a,1));
+    if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="bool") ||
+	(child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="bool")) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("bool",0,0);
+  }
+  else if (a->kind=="not") {
+    TypeCheck(child(a,0));
+    if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="bool")) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("bool",0,0);
+  }
+  else if (a->kind=="-") {
+    TypeCheck(child(a,0));
+    if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="int")) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("int",0,0);
+  }
+  else if (a->kind=="<" || a->kind==">") {
+    TypeCheck(child(a,0));
+    TypeCheck(child(a,1));
+    if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="int") ||
+        (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="int")) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("bool",0,0);
+  }
+  else if (a->kind=="=") {
+    TypeCheck(child(a,0));
+    TypeCheck(child(a,1));
+    if(((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="int") ||
+        (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="int")) &&
+       ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="bool") ||
+        (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="bool"))) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("bool",0,0);
+  }
+  else if (a->kind=="if") {
+    TypeCheck(child(a,0));
+    TypeCheck(child(a,1));
+    TypeCheck(child(a,2));
+    if(child(a,3)!=0)
+      TypeCheck(child(a,3));
+    if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="bool")) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("if",0,0);
+  }
+  else if (a->kind=="while") {
+    TypeCheck(child(a,0));
+    TypeCheck(child(a,1));
+    TypeCheck(child(a,2));
+    if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="bool")) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("while",0,0);
+  }
+  else if (a->kind=="array") {
+    TypeCheck(child(a,0));
+    TypeCheck(child(a,1));
+    if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="int") ||
+        (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="bool" &&
+         child(a,1)->tp->kind!="struct" &&
+         child(a,1)->tp->kind!="int")) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("array",0,0);
+    a->tp->numelemsarray=stringtoint(child(a,0)->text);
+  }
   else {
     cout<<"BIG PROBLEM! No case defined for kind "<<a->kind<<endl;
   }
