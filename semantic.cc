@@ -184,7 +184,7 @@ void TypeCheck(AST *a,string info)
     return;
   }
 
-  //cout<<"Starting with node \""<<a->kind<<"\""<<endl;
+  cout<<"Starting with node \""<<a->kind<<"\""<<endl;
   if (a->kind=="program") {
     a->sc=symboltable.push();
     insert_vars(child(child(a,0),0));
@@ -215,6 +215,7 @@ void TypeCheck(AST *a,string info)
   else if (a->kind==":=") {
     TypeCheck(child(a,0));
     TypeCheck(child(a,1));
+    cout<<child(a,0)->ref<<endl;
     if (!child(a,0)->ref) {
       errornonreferenceableleft(a->line,child(a,0)->text);
     }
@@ -255,15 +256,15 @@ void TypeCheck(AST *a,string info)
     TypeCheck(child(a,0));
     a->ref=child(a,0)->ref;
     if (child(a,0)->tp->kind!="error") {
-      if (child(a,0)->tp->kind!="struct") {
-	errorincompatibleoperator(a->line,"struct.");
+//    cout<<child(a,0)->tp->kind<<endl;
+      if (child(a,0)->tp->kind!="struct" && child(a,0)->tp->kind!="[]") {
+        errorincompatibleoperator(a->line,"struct.");
       }
-      else if (child(a,0)->tp->struct_field.find(child(a,1)->text)==
-	       child(a,0)->tp->struct_field.end()) {
-	errornonfielddefined(a->line,child(a,1)->text);
+      else if (child(a,0)->tp->struct_field.find(child(a,1)->text)==child(a,0)->tp->struct_field.end()) {
+        errornonfielddefined(a->line,child(a,1)->text);
       } 
       else {
-	a->tp=child(a,0)->tp->struct_field[child(a,1)->text];
+      	a->tp=child(a,0)->tp->struct_field[child(a,1)->text];
       }
     }
   }
@@ -271,7 +272,7 @@ void TypeCheck(AST *a,string info)
     TypeCheck(child(a,0));
     TypeCheck(child(a,1));
     if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="bool") ||
-	(child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="bool")) {
+        (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="bool")) {
       errorincompatibleoperator(a->line,a->kind);
     }
     a->tp=create_type("bool",0,0);
@@ -341,6 +342,16 @@ void TypeCheck(AST *a,string info)
     }
     a->tp=create_type("array",0,0);
     a->tp->numelemsarray=stringtoint(child(a,0)->text);
+  }
+  else if (a->kind=="[") {
+    TypeCheck(child(a,0));
+    TypeCheck(child(a,1));
+    a->kind="[]";
+    if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="array") ||
+        (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="int")) {
+      errorincompatibleoperator(a->line,a->kind);
+    }
+    a->tp=create_type("[]",0,0);
   }
   else {
     cout<<"BIG PROBLEM! No case defined for kind "<<a->kind<<endl;
