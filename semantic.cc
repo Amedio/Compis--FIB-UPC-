@@ -340,7 +340,6 @@ void TypeCheck(AST *a,string info)
          child(a,1)->tp->kind!="int")) {
       errorincompatibleoperator(a->line,a->kind);
     }
-    a->kind=child(a,1)->tp->kind;
     a->tp=create_type("array",child(a,1)->tp,0);
     a->tp->numelemsarray=stringtoint(child(a,0)->text);
   }
