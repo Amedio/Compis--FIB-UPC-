@@ -133,6 +133,13 @@ void check_params(AST *a,ptype tp,int line,int numparam)
   //...
 }
 
+void insert_params(AST *a)
+{
+  if (!a) return;
+  TypeCheck(a->down->right);
+  InsertintoST(a->line,"idpar"+a->kind,a->text,a->tp);
+}
+
 void insert_vars(AST *a)
 {
   if (!a) return;
@@ -160,13 +167,41 @@ void construct_struct(AST *a)
 
 void create_header(AST *a)
 {
-  //...
+  a->tp=create_type(a->kind,0,0);
+  
+  AST *params = child(child(child(a,0),0),0);
+  
+  int cont = 0;
+  ptype actual, anterior;
+  anterior = NULL;
+  while(params!=0) {
+    actual=create_type("par"+params->kind,0,0);
+    
+    if(anterior==NULL) a->tp->down=actual;
+    else anterior->right=actual;
+    
+    TypeCheck(child(params,1));
+    
+    actual->down=child(params,1)->tp;
+    anterior=actual;
+   
+    params=params->down;
+    cont++;
+  }
+  a->tp->numelemsarray = cont;
+  
+  if(a->kind=="function") {
+    TypeCheck(child(child(a,0),1));
+    a->tp->right = child(child(a,0),1)->tp;
+  }
 }
 
 
 void insert_header(AST *a)
 {
-  //...
+  create_header(a);
+  if(a->kind=="procedure") InsertintoST(a->line,"idprocedure",child(a,0)->text,a->tp);
+  if(a->kind=="function") InsertintoST(a->line,"idfunction",child(a,0)->text,a->tp);
 }
 
 void insert_headers(AST *a)
@@ -184,16 +219,26 @@ void TypeCheck(AST *a,string info)
     return;
   }
 
-  //cout<<"Starting with node \""<<a->kind<<"\""<<endl;
+  cout<<"Starting with node \""<<a->kind<<"\""<<endl;
   if (a->kind=="program") {
     a->sc=symboltable.push();
     insert_vars(child(child(a,0),0));
-    //insert_headers(child(child(a,1),0));
-    //TypeCheck(child(a,1));
+    insert_headers(child(child(a,1),0));
+    TypeCheck(child(a,1));
     TypeCheck(child(a,2),"instruction");
 
     symboltable.pop();
-  } 
+  }
+  else if (a->kind=="procedure") {
+    a->sc=symboltable.push();
+    
+    insert_params(child(child(child(a,0),0),0));
+    insert_headers(child(child(a,1),0));
+    TypeCheck(child(a,1));
+    TypeCheck(child(a,2),"instruction");
+    
+    symboltable.pop();
+  }
   else if (a->kind=="list") {
     // At this point only instruction, procedures or parameters lists are possible.
     for (AST *a1=a->down;a1!=0;a1=a1->right) {
