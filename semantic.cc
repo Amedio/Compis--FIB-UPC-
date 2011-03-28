@@ -130,14 +130,40 @@ bool isbasickind(string kind) {
 
 void check_params(AST *a,ptype tp,int line,int numparam)
 {
-  //...
+  int cont=0;
+  AST* params=a;
+  
+  while(params)
+	{
+		params = params->right;
+		cont++;
+	}
+	
+	if (cont != numparam) errornumparam(line);
+	else {
+	  params=a;
+    cont=1;
+    tp=tp->down;
+    while(params) {
+      TypeCheck(params);
+      if (tp->kind == "parref" && !params->ref) errorreferenceableparam(line, cont);
+      if (params->tp->kind != "error" && tp->kind != "error" && !equivalent_types(tp->down, params->tp)) 
+        errorincompatibleparam(line, cont);
+        
+      tp=tp->right;
+      params=params->right;
+      cont++;
+    }
+  }
 }
 
 void insert_params(AST *a)
 {
   if (!a) return;
   TypeCheck(a->down->right);
-  InsertintoST(a->line,"idpar"+a->kind,a->text,a->tp);
+  if (a->kind=="ref") InsertintoST(a->line,"idparref",a->down->text,a->down->right->tp);
+  else if (a->kind=="val") InsertintoST(a->line,"idparval",a->down->text,a->down->right->tp);
+  insert_params(a->right);
 }
 
 void insert_vars(AST *a)
@@ -168,7 +194,6 @@ void construct_struct(AST *a)
 void create_header(AST *a)
 {
   a->tp=create_type(a->kind,0,0);
-  
   AST *params = child(child(child(a,0),0),0);
   
   int cont = 0;
@@ -176,16 +201,15 @@ void create_header(AST *a)
   anterior = NULL;
   while(params!=0) {
     actual=create_type("par"+params->kind,0,0);
-    
+
     if(anterior==NULL) a->tp->down=actual;
     else anterior->right=actual;
     
     TypeCheck(child(params,1));
-    
     actual->down=child(params,1)->tp;
     anterior=actual;
    
-    params=params->down;
+    params=params->right;
     cont++;
   }
   a->tp->numelemsarray = cont;
@@ -200,8 +224,8 @@ void create_header(AST *a)
 void insert_header(AST *a)
 {
   create_header(a);
-  if(a->kind=="procedure") InsertintoST(a->line,"idprocedure",child(a,0)->text,a->tp);
-  if(a->kind=="function") InsertintoST(a->line,"idfunction",child(a,0)->text,a->tp);
+  if (a->kind=="function") InsertintoST(a->line,"idfunction",child(a,0)->text,a->tp);	
+  if (a->kind=="procedure") InsertintoST(a->line,"idprocedure",child(a,0)->text,a->tp);
 }
 
 void insert_headers(AST *a)
@@ -219,9 +243,10 @@ void TypeCheck(AST *a,string info)
     return;
   }
 
-  cout<<"Starting with node \""<<a->kind<<"\""<<endl;
+//  cout<<"Starting with node \""<<a->kind<<"\""<<endl;
   if (a->kind=="program") {
     a->sc=symboltable.push();
+    
     insert_vars(child(child(a,0),0));
     insert_headers(child(child(a,1),0));
     TypeCheck(child(a,1));
@@ -233,9 +258,10 @@ void TypeCheck(AST *a,string info)
     a->sc=symboltable.push();
     
     insert_params(child(child(child(a,0),0),0));
-    insert_headers(child(child(a,1),0));
-    TypeCheck(child(a,1));
-    TypeCheck(child(a,2),"instruction");
+    insert_vars(child(child(a,1),0));
+    insert_headers(child(child(a,2),0));
+    TypeCheck(child(a,2));
+    TypeCheck(child(a,3),"instruction");
     
     symboltable.pop();
   }
@@ -251,7 +277,8 @@ void TypeCheck(AST *a,string info)
     } 
     else {
       a->tp=symboltable[a->text].tp;
-      a->ref=1;
+      if (a->tp->kind=="procedure" || a->tp->kind=="function") a->ref = 0;
+      else a->ref=1;
     }
   } 
   else if (a->kind=="struct") {
@@ -260,7 +287,6 @@ void TypeCheck(AST *a,string info)
   else if (a->kind==":=") {
     TypeCheck(child(a,0));
     TypeCheck(child(a,1));
-    //cout<<child(a,0)->tp->kind<<endl;
     if (!child(a,0)->ref) {
       errornonreferenceableleft(a->line,child(a,0)->text);
     }
@@ -402,6 +428,11 @@ void TypeCheck(AST *a,string info)
       a->tp=child(a,0)->tp->down;
     }
     a->ref=child(a,0)->ref;
+  }
+  else if (a->kind=="(") {
+    a->tp = symboltable[child(a,0)->text].tp;
+    check_params(child(child(a,1),0), a->tp, a->line, a->tp->numelemsarray);
+    a->tp = create_type("error", 0, 0);
   }
   else {
     cout<<"BIG PROBLEM! No case defined for kind "<<a->kind<<endl;
