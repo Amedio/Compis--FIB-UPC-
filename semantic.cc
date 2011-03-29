@@ -243,7 +243,7 @@ void TypeCheck(AST *a,string info)
     return;
   }
 
-//  cout<<"Starting with node \""<<a->kind<<"\""<<endl;
+  //cout<<"Starting with node \""<<a->kind<<"\""<<endl;
   if (a->kind=="program") {
     a->sc=symboltable.push();
     
@@ -430,9 +430,29 @@ void TypeCheck(AST *a,string info)
     a->ref=child(a,0)->ref;
   }
   else if (a->kind=="(") {
-    a->tp = symboltable[child(a,0)->text].tp;
-    check_params(child(child(a,1),0), a->tp, a->line, a->tp->numelemsarray);
-    a->tp = create_type("error", 0, 0);
+    if (!symboltable.find(child(a,0)->text)) {
+      errornondeclaredident(a->line,child(a,0)->text);
+    } else if(info=="instruction") {
+      a->tp = symboltable[child(a,0)->text].tp;
+      if(a->tp->kind=="procedure") {
+        check_params(child(child(a,1),0),a->tp,a->line,a->tp->numelemsarray);
+      } else {
+        errorisnotprocedure(a->line);
+        if(a->tp->kind=="function") {
+          check_params(child(child(a,1),0),a->tp,a->line,a->tp->numelemsarray);
+        }
+      }
+    } else {
+      a->tp = symboltable[child(a,0)->text].tp;
+      if(a->tp->kind=="function") {
+      } else {
+        errorisnotfunction(a->line);
+        if(a->tp->kind=="procedure") {
+          check_params(child(child(a,1),0),a->tp,a->line,a->tp->numelemsarray);
+          a->tp=create_type("error",0,0);
+        }
+      }
+    }
   }
   else {
     cout<<"BIG PROBLEM! No case defined for kind "<<a->kind<<endl;
