@@ -123,7 +123,7 @@ static void InsertintoST(int line,string kind,string id,ptype tp)
 /// ------------------------------------------------------------
 
 bool isbasickind(string kind) {
-  return kind=="int" || kind=="bool";
+  return kind=="int" || kind=="bool" || kind=="string";
 }
 
 
@@ -250,6 +250,7 @@ void TypeCheck(AST *a,string info)
     insert_vars(child(child(a,0),0));
     insert_headers(child(child(a,1),0));
     TypeCheck(child(a,1));
+//    symboltable.write();
     TypeCheck(child(a,2),"instruction");
 
     symboltable.pop();
@@ -262,6 +263,21 @@ void TypeCheck(AST *a,string info)
     insert_headers(child(child(a,2),0));
     TypeCheck(child(a,2));
     TypeCheck(child(a,3),"instruction");
+    
+    symboltable.pop();
+  }
+  else if (a->kind=="function") {
+    a->sc=symboltable.push();
+    
+    insert_params(child(child(child(a,0),0),0));
+    insert_vars(child(child(a,1),0));
+    insert_headers(child(child(a,2),0));
+    TypeCheck(child(a,2));
+    TypeCheck(child(a,3),"instruction");
+    TypeCheck(child(a,4));
+    
+    if(!equivalent_types(child(a,4)->tp,a->tp->right))
+      errorincompatiblereturn(child(a,4)->line);
     
     symboltable.pop();
   }
@@ -287,12 +303,16 @@ void TypeCheck(AST *a,string info)
   else if (a->kind==":=") {
     TypeCheck(child(a,0));
     TypeCheck(child(a,1));
+    
+//    cout<<child(a,0)->tp->kind<<endl;
+//    cout<<child(a,1)->tp->kind<<endl;
+    
     if (!child(a,0)->ref) {
       errornonreferenceableleft(a->line,child(a,0)->text);
     }
     else if (child(a,0)->tp->kind!="error" && child(a,1)->tp->kind!="error" &&
 	     !equivalent_types(child(a,0)->tp,child(a,1)->tp)) {
-      errorincompatibleassignment(a->line);
+          errorincompatibleassignment(a->line);
     } 
     else {
       a->tp=child(a,0)->tp;
@@ -303,6 +323,9 @@ void TypeCheck(AST *a,string info)
   } 
   else if (a->kind=="true" || a->kind=="false") {
     a->tp=create_type("bool",0,0);
+  }
+  else if (a->kind=="string") {
+    a->tp=create_type("string",0,0);
   } 
   else if (a->kind=="+" || (a->kind=="-" && child(a,1)!=0) || a->kind=="*"
 	   || a->kind=="/") {
@@ -383,23 +406,18 @@ void TypeCheck(AST *a,string info)
   }
   else if (a->kind=="if") {
     TypeCheck(child(a,0));
-    TypeCheck(child(a,1));
-    TypeCheck(child(a,2));
-    if(child(a,3)!=0)
-      TypeCheck(child(a,3));
     if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="bool")) {
-      errorincompatibleoperator(a->line,a->kind);
+      errorbooleanrequired(a->line,a->kind);
     }
-    a->tp=create_type("if",0,0);
+    TypeCheck(child(a,1),"instruction");
+    if(child(a,2)!=0) TypeCheck(child(a,2),"instruction");
   }
   else if (a->kind=="while") {
     TypeCheck(child(a,0));
-    TypeCheck(child(a,1));
-    TypeCheck(child(a,2));
     if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="bool")) {
-      errorincompatibleoperator(a->line,a->kind);
+      errorbooleanrequired(a->line,a->kind);
     }
-    a->tp=create_type("while",0,0);
+    TypeCheck(child(a,1),"instruction");
   }
   else if (a->kind=="array") {
     TypeCheck(child(a,0));
@@ -408,7 +426,8 @@ void TypeCheck(AST *a,string info)
     if ((child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="int") ||
         (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="bool" &&
          child(a,1)->tp->kind!="struct" &&
-         child(a,1)->tp->kind!="int")) {
+         child(a,1)->tp->kind!="int" &&
+         child(a,1)->tp->kind!="array")) {
       errorincompatibleoperator(a->line,a->kind);
     }
     a->tp=create_type("array",child(a,1)->tp,0);
@@ -418,7 +437,13 @@ void TypeCheck(AST *a,string info)
     TypeCheck(child(a,0));
     TypeCheck(child(a,1));
     if (child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="array") {
-      errorincompatibleoperator(a->line,"array[]");
+      /*if (child(a,0)->tp->kind=="function"){
+        if (child(a,0)->tp->right->kind!="array")
+          errorincompatibleoperator(a->line,"array[]");
+      }
+      else {*/
+        errorincompatibleoperator(a->line,"array[]");
+      //}
     }
     if (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="int") {
       errorincompatibleoperator(a->line,"[]");
@@ -445,6 +470,8 @@ void TypeCheck(AST *a,string info)
     } else {
       a->tp = symboltable[child(a,0)->text].tp;
       if(a->tp->kind=="function") {
+        check_params(child(child(a,1),0),a->tp,a->line,a->tp->numelemsarray);
+        a->tp=a->tp->right;
       } else {
         errorisnotfunction(a->line);
         if(a->tp->kind=="procedure") {
@@ -453,6 +480,24 @@ void TypeCheck(AST *a,string info)
         }
       }
     }
+  }
+  else if (a->kind=="read") {
+    TypeCheck(child(a,0));
+		if (child(a,0)->tp->kind!="error")
+		{
+			if (child(a,0)->ref==0)
+			  errornonreferenceableexpression(a->line,a->kind);
+			else if (!isbasickind(child(a,0)->tp->kind))
+			  errorreadwriterequirebasic(a->line,a->kind); 
+		}
+  }
+  else if (a->kind=="write") {
+    TypeCheck(child(a,0));
+		if (child(a,0)->tp->kind!="error")
+		{
+			if (!isbasickind(child(a,0)->tp->kind))
+			  errorreadwriterequirebasic(a->line,a->kind); 
+		}
   }
   else {
     cout<<"BIG PROBLEM! No case defined for kind "<<a->kind<<endl;
