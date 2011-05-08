@@ -191,7 +191,7 @@ codechain GenLeft(AST *a,int t)
 codechain GenRight(AST *a,int t)
 {
   //cout<<"GENRIGHT"<<endl;
-  codechain c;
+  codechain c, topush, topop;
 
   if (!a) {
     return c;
@@ -270,6 +270,24 @@ codechain GenRight(AST *a,int t)
   else if(a->kind=="not") {
     c=GenRight(child(a,0),t)||
         "lnot t"+itostring(t)+" t"+itostring(t);
+  }
+  else if(a->kind=="(") {
+    if(isbasickind(symboltable[child(a,0)->text].tp->right->kind)) {
+      topush="pushparam 0";
+      CodeGenRealParams(a, symboltable[child(a,0)->text].tp, topush, topop, t);
+      topop=topop||"popparam t"+itostring(t);
+    }
+    else {
+      topush = "aload aux_space t" + itostring(t);
+      topush = topush || "addi t" + itostring(t) + " " + itostring(offsetauxspace) + " t" + itostring(t);
+      topush = topush || "pushparam t" + itostring(t);
+      offsetauxspace += compute_size(symboltable[child(a,0)->text].tp->right);
+      CodeGenRealParams(a, symboltable[child(a,0)->text].tp, topush, topop, t + 1);
+      topop = topop || "killparam";
+    }
+    c = topush;
+    c = c || "call " + symboltable.idtable(child(a, 0)->text) + "_" + child(a, 0)->text;
+    c = c || topop;
   }
   else {
     cout<<"genright"<<endl;
