@@ -265,7 +265,9 @@ codechain GenRight(AST *a,int t)
       "land t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
   }
   else if(a->kind=="or") {
-    cout<<"por desarrollar"<<endl;
+    c=GenRight(child(a,0),t)||
+      GenRight(child(a,1),t+1)||
+      "loor t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
   }
   else if(a->kind=="not") {
     c=GenRight(child(a,0),t)||
