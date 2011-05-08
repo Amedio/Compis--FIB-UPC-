@@ -121,6 +121,8 @@ void CodeGenRealParams(AST *a,ptype tp,codechain &cpushparam,codechain &cremovep
 // ...to be completed:
 codechain GenLeft(AST *a,int t)
 {
+  //cout<<"GENLEFT"<<endl;
+
   codechain c;
 
   if (!a) {
@@ -136,7 +138,13 @@ codechain GenLeft(AST *a,int t)
       "addi t"+itostring(t)+" "+
       itostring(child(a,0)->tp->offset[child(a,1)->text])+" t"+itostring(t);
   }
+  else if(a->kind=="[") {
+    c=GenLeft(child(a, 0), t)||GenRight(child(a, 1), t+1)||
+      "muli t"+itostring(t+1)+" "+itostring(child(a, 0)->tp->size/child(a, 0)->tp->numelemsarray)
+      +" t"+itostring(t+1)||"addi t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
+  }
   else {
+    cout<<"genleft"<<endl;
     cout<<"BIG PROBLEM! No case defined for kind "<<a->kind<<endl;
   }
   //cout<<"Ending with node \""<<a->kind<<"\""<<endl;
@@ -147,6 +155,7 @@ codechain GenLeft(AST *a,int t)
 // ...to be completed:
 codechain GenRight(AST *a,int t)
 {
+  //cout<<"GENRIGHT"<<endl;
   codechain c;
 
   if (!a) {
@@ -168,12 +177,67 @@ codechain GenRight(AST *a,int t)
   else if (a->kind=="intconst") {
     c="iload "+a->text+" t"+itostring(t);
   }
+  else if (a->kind=="true") {
+    c="iload 1 t"+itostring(t);
+  }
+  else if (a->kind=="false") {
+    c="iload 0 t"+itostring(t);
+  }
   else if (a->kind=="+") {
     c=GenRight(child(a,0),t)||
       GenRight(child(a,1),t+1)||
       "addi t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
   }
+  else if (a->kind=="-") {
+    if(child(a,1)) {
+      c=GenRight(child(a,0),t)||
+        GenRight(child(a,1),t+1)||
+        "subi t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
+    }
+    else {
+      c=GenRight(child(a,0),t)||
+        "mini t"+itostring(t)+" t"+itostring(t);
+    }
+  }
+  else if (a->kind=="/") {
+    c=GenRight(child(a,0),t)||
+      GenRight(child(a,1),t+1)||
+      "divi t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
+  }
+  else if (a->kind=="*") {
+    c=GenRight(child(a,0),t)||
+      GenRight(child(a,1),t+1)||
+      "muli t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
+  }
+  else if(a->kind=="=") {
+    c=GenRight(child(a,0),t)||
+      GenRight(child(a,1),t+1)||
+      "equi t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
+  }
+  else if(a->kind=="<") {
+    c=GenRight(child(a,0),t)||
+      GenRight(child(a,1),t+1)||
+      "lesi t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
+  }
+  else if(a->kind==">") {
+    c=GenRight(child(a,0),t)||
+      GenRight(child(a,1),t+1)||
+      "grti t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
+  }
+  else if(a->kind=="and") {
+    c=GenRight(child(a,0),t)||
+      GenRight(child(a,1),t+1)||
+      "land t"+itostring(t)+" t"+itostring(t+1)+" t"+itostring(t);
+  }
+  else if(a->kind=="or") {
+    cout<<"por desarrollar"<<endl;
+  }
+  else if(a->kind=="not") {
+    c=GenRight(child(a,0),t)||
+        "lnot t"+itostring(t)+" t"+itostring(t);
+  }
   else {
+    cout<<"genright"<<endl;
     cout<<"BIG PROBLEM! No case defined for kind "<<a->kind<<endl;
   }
   //cout<<"Ending with node \""<<a->kind<<"\""<<endl;
@@ -183,7 +247,8 @@ codechain GenRight(AST *a,int t)
 // ...to be completed:
 codechain CodeGenInstruction(AST *a,string info="")
 {
-  codechain c;
+  codechain c, topush, topop;
+  string numwhile, numif;
 
   if (!a) {
     return c;
@@ -208,7 +273,7 @@ codechain CodeGenInstruction(AST *a,string info="")
   } 
   else if (a->kind=="write" || a->kind=="writeln") {
     if (child(a,0)->kind=="string") {
-      //...to be done.
+      c="wris "+child(a,0)->text; 
     } 
     else {//Exp
       c=GenRight(child(a,0),0)||"wrii t0";
@@ -217,6 +282,31 @@ codechain CodeGenInstruction(AST *a,string info="")
     if (a->kind=="writeln") {
       c=c||"wrln";
     }
+  }
+  else if(a->kind=="while") {
+    // ASTPrintIndent(a, "");
+    numwhile=itostring(newLabelWhile());
+    c="etiq while_"+numwhile||GenRight(child(a,0),0)||"fjmp t0 endwhile_"+numwhile;
+    c=c||CodeGenInstruction(child(a,1), info)||"ujmp while_"+numwhile||"etiq endwhile_"+numwhile;
+  }
+  else if(a->kind=="if") {
+    numif=itostring(newLabelIf());
+    if(!child(a,2)) {
+      c=GenRight(child(a,0),0)||"fjmp t0 endif_"+numif||
+        CodeGenInstruction(child(a,1),info)||"etiq endif_"+numif;
+    }
+    else {
+      c=GenRight(child(a,0),0)||"fjmp t0 else_"+numif||
+        CodeGenInstruction(child(a,1),info)||"ujmp endif_"+numif||
+        "etiq else_"+numif||CodeGenInstruction(child(a,2),info)||
+        "etiq endif_"+numif;
+    }
+  }
+  else if(a->kind=="(") {
+    CodeGenRealParams(a, a->tp, topush, topop, 0);
+    c = topush;
+    c = c || "call " + symboltable.idtable(child(a, 0)->text) + "_" + child(a, 0)->text;
+    c = c || topop;
   }
   //cout<<"Ending with node \""<<a->kind<<"\""<<endl;
 
@@ -233,7 +323,35 @@ void CodeGenSubroutine(AST *a,list<codesubroutine> &l)
   symboltable.push(a->sc);
   symboltable.setidtable(idtable+"_"+child(a,0)->text);
 
-  //...to be done.
+  gencodevariablesandsetsizes(a->sc, cs, a->kind=="function");
+
+  for (AST *a1=child(child(a,2),0);a1!=0;a1=a1->right) {
+    CodeGenSubroutine(a1, l);
+  }
+  
+  maxoffsetauxspace=0; newLabelIf(true); newLabelWhile(true);
+
+  cs.c=CodeGenInstruction(child(a,3));
+
+  if (a->kind=="function") {
+    if (isbasickind(child(a, 4)->tp->kind)) {
+      cs.c = cs.c || GenRight(child(a, 4), 0);
+      cs.c = cs.c || "stor t0 returnvalue";
+    }
+    else {
+      cs.c = cs.c || GenLeft(child(a, 4), 1);
+      cs.c = cs.c || "load returnvalue t0" || "copy t1 t0 " + itostring(compute_size(child(a, 4)->tp));
+    }
+  }
+
+  cs.c = cs.c || "retu";
+
+  if (maxoffsetauxspace>0) {
+    variable_data vd;
+    vd.name="aux_space";
+    vd.size=maxoffsetauxspace;
+    cs.localvariables.push_back(vd);
+  }
 
   symboltable.pop();
   l.push_back(cs);
