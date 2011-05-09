@@ -224,7 +224,7 @@ void create_header(AST *a)
 void insert_header(AST *a)
 {
   create_header(a);
-  if (a->kind=="function") InsertintoST(a->line,"idfunction",child(a,0)->text,a->tp);	
+  if (a->kind=="function") InsertintoST(a->line,"idfunc",child(a,0)->text,a->tp);	
   if (a->kind=="procedure") InsertintoST(a->line,"idprocedure",child(a,0)->text,a->tp);
 }
 
@@ -280,6 +280,9 @@ void TypeCheck(AST *a,string info)
       errorincompatiblereturn(child(a,4)->line);
     
     symboltable.pop();
+  }
+  else if(a->kind=="val"||a->kind=="ref") {
+    a->tp=create_type("par"+a->kind,0,0);
   }
   else if (a->kind=="list") {
     // At this point only instruction, procedures or parameters lists are possible.
@@ -437,13 +440,7 @@ void TypeCheck(AST *a,string info)
     TypeCheck(child(a,0));
     TypeCheck(child(a,1));
     if (child(a,0)->tp->kind!="error" && child(a,0)->tp->kind!="array") {
-      /*if (child(a,0)->tp->kind=="function"){
-        if (child(a,0)->tp->right->kind!="array")
-          errorincompatibleoperator(a->line,"array[]");
-      }
-      else {*/
         errorincompatibleoperator(a->line,"array[]");
-      //}
     }
     if (child(a,1)->tp->kind!="error" && child(a,1)->tp->kind!="int") {
       errorincompatibleoperator(a->line,"[]");

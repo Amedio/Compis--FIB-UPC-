@@ -206,7 +206,12 @@ codechain GenRight(AST *a,int t)
     else if (isbasickind(a->tp->kind)) {
       c=GenLeft(a,t)||"load t"+itostring(t)+" t"+itostring(t);
     }
-    else {//...to be done
+    else {
+      c = GenLeft(a, t + 1);
+      c = c || "aload aux_space t" + itostring(t);
+      c = c || "addi t" + itostring(t) + " " + itostring(offsetauxspace) + " t" + itostring(t);
+      c = c || "copy t" + itostring(t + 1) + " t" + itostring(t) + " " + itostring(a->tp->size);
+      offsetauxspace += a->tp->size;
     }    
   } 
   else if (a->kind=="intconst") {
@@ -363,6 +368,10 @@ codechain CodeGenInstruction(AST *a,string info="")
     c = c || "call " + symboltable.idtable(child(a, 0)->text) + "_" + child(a, 0)->text;
     c = c || topop;
   }
+
+  // Actualitzo el Màxim auxspace
+  if (offsetauxspace > maxoffsetauxspace) maxoffsetauxspace = offsetauxspace;
+  
   //cout<<"Ending with node \""<<a->kind<<"\""<<endl;
 
   return c;
