@@ -146,7 +146,7 @@ codechain GenLeft(AST *a,int t)
     return c;
   }
 
-  //cout<<"Starting with node \""<<a->kind<<"\""<<endl;
+  //cout<<"GenLeft!! Starting with node \""<<a->kind<<"\""<<endl;
   if (a->kind=="ident") {
     int js=symboltable.jumped_scopes(a->text);
     if(js>0) {
@@ -197,7 +197,7 @@ codechain GenRight(AST *a,int t)
     return c;
   }
 
-  //cout<<"Starting with node \""<<a->kind<<"\""<<endl;
+  //cout<<"GenRight!!! Starting with node \""<<a->kind<<" "<<a->line<<"\""<<endl;
   if (a->ref) {
     if (a->kind=="ident" && symboltable.jumped_scopes(a->text)==0 &&
 	      isbasickind(symboltable[a->text].tp->kind) && symboltable[a->text].kind!="idparref") {
@@ -212,7 +212,7 @@ codechain GenRight(AST *a,int t)
       c = c || "addi t" + itostring(t) + " " + itostring(offsetauxspace) + " t" + itostring(t);
       c = c || "copy t" + itostring(t + 1) + " t" + itostring(t) + " " + itostring(a->tp->size);
       offsetauxspace += a->tp->size;
-    }    
+    }
   } 
   else if (a->kind=="intconst") {
     c="iload "+a->text+" t"+itostring(t);
@@ -295,6 +295,10 @@ codechain GenRight(AST *a,int t)
     c = topush;
     c = c || "call " + symboltable.idtable(child(a, 0)->text) + "_" + child(a, 0)->text;
     c = c || topop;
+  }
+  else if(a->kind==".") {
+    c=c||GenRight(child(a,0),t);
+    c=c||"addi t"+itostring(t)+" "+itostring(child(a,1)->tp->size)+" t"+itostring(t);
   }
   else {
     cout<<"genright"<<endl;
